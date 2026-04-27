@@ -1,252 +1,196 @@
 <script setup>
-import { computed, onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import HeaderComponent from '../components/HeaderComponent.vue';
 import { useConflictStore } from '../stores/conflict';
 
 const conflictStore = useConflictStore();
+const stats = ref({
+  active: 0,
+  frozen: 0,
+  resolved: 0,
+  totalCountries: 0
+});
 
 onMounted(async () => {
-  if (!conflictStore.conflicts.length) {
-    await conflictStore.getConflicts();
-  }
-});
-
-const stats = computed(() => {
+  // Cargar conflictos
+  await conflictStore.getConflicts();
+  
+  // Calcular estadísticas reales
   const conflicts = conflictStore.conflicts;
-
-  return {
-    total: conflicts.length,
-    active: conflicts.filter((conflict) => conflict.status === 'ACTIVE').length,
-    frozen: conflicts.filter((conflict) => conflict.status === 'FROZEN').length,
-    resolved: conflicts.filter((conflict) => conflict.status === 'RESOLVED').length,
-    countries: new Set(
-      conflicts.flatMap((conflict) => (conflict.countries || []).map((country) => country.name))
-    ).size
-  };
+  
+  stats.value.active = conflicts.filter(c => c.status === 'ACTIVE').length;
+  stats.value.frozen = conflicts.filter(c => c.status === 'FROZEN').length;
+  stats.value.resolved = conflicts.filter(c => c.status === 'RESOLVED').length;
+  
+  // Cargar países y contar
+  await conflictStore.getCountries();
+  stats.value.totalCountries = conflictStore.countries.length;
 });
-
-const features = [
-  {
-    title: 'Seguimiento en tiempo real',
-    description: 'Consulta el estado actual de cada conflicto y entra a su ficha completa.'
-  },
-  {
-    title: 'Banderas por pais',
-    description: 'Cada conflicto muestra los paises implicados con banderas reales de una libreria.'
-  },
-  {
-    title: 'Filtros rapidos',
-    description: 'Filtra por estado para centrarte en los conflictos activos, congelados o resueltos.'
-  },
-  {
-    title: 'Edicion sencilla',
-    description: 'Crea, edita y elimina conflictos desde formularios mas claros y consistentes.'
-  }
-];
 </script>
 
 <template>
-  <HeaderComponent />
+    <HeaderComponent />
+    <div class="home-content">
+        <div class="hero-section">
+            <h1>Benvigut al Monitor Global de Conflictes</h1>
+            <p>Una eina per fer seguiment i monitoritzar conflictes globals en temps real.</p>
+            <router-link to="/conflicts" class="btn-primary">
+                Veure Conflictes
+            </router-link>
+        </div>
 
-  <div class="home-content">
-    <section class="hero-section">
-      <p class="eyebrow">Panel central</p>
-      <h1>Monitor global de conflictos</h1>
-      <p class="hero-copy">
-        Una vista clara para seguir conflictos, revisar sus paises implicados y mantener la informacion organizada.
-      </p>
-      <div class="hero-actions">
-        <router-link to="/conflicts" class="btn-primary">
-          Ver conflictos
-        </router-link>
-        <router-link to="/conflicts/new" class="btn-secondary">
-          Crear conflicto
-        </router-link>
-      </div>
-    </section>
+        <div class="features-section">
+            <h3>Característiques Principals</h3>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h4>📊 Monitorització en Temps Real</h4>
+                    <p>Seguiment constant de l'estat dels conflictes globals.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🌍 Cobertura Global</h4>
+                    <p>Informació sobre conflictes a tot el món amb detalls per país.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>📅 Històric Complet</h4>
+                    <p>Dates d'inici, evolució i possibles dates de finalització.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🔍 Cercador Avançat</h4>
+                    <p>Filtra per estat, país o paraules clau.</p>
+                </div>
+            </div>
+        </div>
 
-    <section class="stats-section">
-      <article class="stat-card">
-        <span class="stat-number">{{ stats.total }}</span>
-        <span class="stat-label">Conflictos registrados</span>
-      </article>
-      <article class="stat-card">
-        <span class="stat-number">{{ stats.active }}</span>
-        <span class="stat-label">Activos</span>
-      </article>
-      <article class="stat-card">
-        <span class="stat-number">{{ stats.frozen }}</span>
-        <span class="stat-label">Congelados</span>
-      </article>
-      <article class="stat-card">
-        <span class="stat-number">{{ stats.resolved }}</span>
-        <span class="stat-label">Resueltos</span>
-      </article>
-      <article class="stat-card">
-        <span class="stat-number">{{ stats.countries }}</span>
-        <span class="stat-label">Paises implicados</span>
-      </article>
-    </section>
-
-    <section class="features-section">
-      <div class="section-heading">
-        <h2>Que mejora en esta version</h2>
-        <p>La portada ahora usa datos reales del store y resume mejor el estado actual del proyecto.</p>
-      </div>
-
-      <div class="features-grid">
-        <article v-for="feature in features" :key="feature.title" class="feature-card">
-          <h3>{{ feature.title }}</h3>
-          <p>{{ feature.description }}</p>
-        </article>
-      </div>
-    </section>
-  </div>
+        <div class="stats-section">
+            <h3>Estadístiques Ràpides</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.active }}</div>
+                    <div class="stat-label">Conflictes Actius</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.frozen }}</div>
+                    <div class="stat-label">Conflictes Congelats</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.totalCountries }}</div>
+                    <div class="stat-label">Països Afectats</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ stats.resolved }}</div>
+                    <div class="stat-label">Conflictes Resolts</div>
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <style scoped>
 .home-content {
-  padding: 2rem 1rem 3rem;
-  max-width: 1200px;
-  margin: 0 auto;
+    padding: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .hero-section {
-  padding: 3rem;
-  background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%);
-  border-radius: 24px;
-  color: white;
-  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.18);
-}
-
-.eyebrow {
-  margin: 0 0 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-size: 0.75rem;
-  opacity: 0.75;
+    text-align: center;
+    padding: 3rem 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    color: white;
+    margin-bottom: 3rem;
 }
 
 .hero-section h1 {
-  margin: 0;
-  font-size: clamp(2.25rem, 5vw, 4rem);
-  line-height: 1.05;
+    margin: 0 0 1rem 0;
+    font-size: 2.5rem;
+    font-weight: 700;
 }
 
-.hero-copy {
-  max-width: 650px;
-  margin: 1rem 0 0;
-  font-size: 1.1rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.88);
-}
-
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.btn-primary,
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 180px;
-  padding: 0.9rem 1.4rem;
-  border-radius: 999px;
-  text-decoration: none;
-  font-weight: 700;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.hero-section p {
+    margin: 0 0 2rem 0;
+    font-size: 1.25rem;
+    opacity: 0.9;
 }
 
 .btn-primary {
-  background: white;
-  color: #0f172a;
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: white;
+    color: #667eea;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.2s;
 }
 
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.12);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.btn-primary:hover,
-.btn-secondary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.22);
+.features-section, .stats-section {
+    margin-bottom: 3rem;
 }
 
-.stats-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.stat-card,
-.feature-card {
-  background: white;
-  border-radius: 20px;
-  padding: 1.5rem;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-}
-
-.stat-number {
-  display: block;
-  font-size: 2rem;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.stat-label {
-  display: block;
-  margin-top: 0.35rem;
-  color: #475569;
-}
-
-.features-section {
-  margin-top: 3rem;
-}
-
-.section-heading h2 {
-  margin: 0;
-  font-size: 2rem;
-  color: #0f172a;
-}
-
-.section-heading p {
-  margin: 0.75rem 0 0;
-  color: #475569;
-  max-width: 720px;
+.features-section h3, .stats-section h3 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #1f2937;
+    font-size: 1.75rem;
 }
 
 .features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
-  margin-top: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
 }
 
-.feature-card h3 {
-  margin: 0 0 0.75rem;
-  color: #0f172a;
+.feature-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.feature-card h4 {
+    margin: 0 0 1rem 0;
+    color: #1f2937;
 }
 
 .feature-card p {
-  margin: 0;
-  line-height: 1.6;
-  color: #475569;
+    margin: 0;
+    color: #6b7280;
+    line-height: 1.5;
 }
 
-@media (max-width: 640px) {
-  .hero-section {
-    padding: 2rem 1.25rem;
-  }
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
 
-  .hero-actions {
-    flex-direction: column;
-  }
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #4f46e5;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    color: #6b7280;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 </style>

@@ -1,61 +1,49 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { normalizeConflictCountries } from "../utils/countries";
 
 export const useConflictStore = defineStore("conflicts", () => {
-    const API_URL = "http://localhost:8080/api/v1/conflicts";
-    const COUNTRIES_API_URL = "http://localhost:8080/api/v1/countries";
+    const API_BASE_URL = (
+        import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1"
+    ).replace(/\/+$/, "");
+    const API_URL = `${API_BASE_URL}/conflicts`;
+    const COUNTRIES_API_URL = `${API_BASE_URL}/countries`;
 
     const conflicts = ref([]);
     const countries = ref([]);
     const loading = ref(false);
-    const error = ref("");
+    const error = ref(false);
     const currentConflict = ref(null);
-
-    const normalizeConflict = (conflict) => ({
-        ...conflict,
-        countries: normalizeConflictCountries(conflict.countries)
-    });
 
     const getConflicts = async (status = null) => {
         loading.value = true;
         try {
             const url = status ? `${API_URL}?status=${status}` : API_URL;
             const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error("No se pudieron cargar los conflictos");
-            }
-
             const data = await response.json();
-            conflicts.value = data.map(normalizeConflict);
-            error.value = "";
+            conflicts.value = data;
+            error.value = false;
         } catch (e) {
-            error.value = e.message || "Error cargando conflictos";
-            console.log("error cargando conflictos", e);
+            error.value = true;
+            console.log("error intentant carregar dades", e);
         } finally {
             loading.value = false;
         }
-    };
+    }
 
     const getConflictById = async (id) => {
         loading.value = true;
         try {
             const response = await fetch(`${API_URL}/${id}`);
-            if (!response.ok) {
-                throw new Error("No se pudo cargar el conflicto");
-            }
-
             const data = await response.json();
-            currentConflict.value = normalizeConflict(data);
-            error.value = "";
+            currentConflict.value = data;
+            error.value = false;
         } catch (e) {
-            currentConflict.value = null;
-            error.value = e.message || "Error cargando el conflicto";
-            console.log("error cargando conflicto", e);
+            error.value = true;
+            console.log("error carregant conflicte", e);
         } finally {
             loading.value = false;
         }
-    };
+    }
 
     const createConflict = async (conflictData) => {
         loading.value = true;
@@ -67,23 +55,21 @@ export const useConflictStore = defineStore("conflicts", () => {
                 },
                 body: JSON.stringify(conflictData)
             });
-
             const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || 'Error creando el conflicto');
+            if (response.ok) {
+                await getConflicts();
+                return data;
+            } else {
+                throw new Error(data.message || 'Error creant conflicte');
             }
-
-            await getConflicts();
-            error.value = "";
-            return data;
         } catch (e) {
-            error.value = e.message || "Error creando el conflicto";
-            console.log("error creando conflicto", e);
+            error.value = true;
+            console.log("error creant conflicte", e);
             throw e;
         } finally {
             loading.value = false;
         }
-    };
+    }
 
     const updateConflict = async (id, conflictData) => {
         loading.value = true;
@@ -95,23 +81,21 @@ export const useConflictStore = defineStore("conflicts", () => {
                 },
                 body: JSON.stringify(conflictData)
             });
-
             const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || 'Error actualizando el conflicto');
+            if (response.ok) {
+                await getConflicts();
+                return data;
+            } else {
+                throw new Error(data.message || 'Error actualitzant conflicte');
             }
-
-            await getConflicts();
-            error.value = "";
-            return data;
         } catch (e) {
-            error.value = e.message || "Error actualizando el conflicto";
-            console.log("error actualizando conflicto", e);
+            error.value = true;
+            console.log("error actualitzant conflicte", e);
             throw e;
         } finally {
             loading.value = false;
         }
-    };
+    }
 
     const deleteConflict = async (id) => {
         loading.value = true;
@@ -119,38 +103,59 @@ export const useConflictStore = defineStore("conflicts", () => {
             const response = await fetch(`${API_URL}/${id}`, {
                 method: 'DELETE'
             });
-
-            if (!response.ok) {
-                throw new Error('Error eliminando el conflicto');
+            if (response.ok) {
+                await getConflicts();
+                return true;
+            } else {
+                throw new Error('Error eliminant conflicte');
             }
-
-            await getConflicts();
-            error.value = "";
-            return true;
         } catch (e) {
-            error.value = e.message || "Error eliminando el conflicto";
-            console.log("error eliminando conflicto", e);
+            error.value = true;
+            console.log("error eliminant conflicte", e);
             throw e;
         } finally {
             loading.value = false;
         }
-    };
+    }
 
     const getCountries = async () => {
         try {
             const response = await fetch(COUNTRIES_API_URL);
-            if (!response.ok) {
-                throw new Error("No se pudieron cargar los paises");
-            }
-
             const data = await response.json();
             countries.value = data;
-            error.value = "";
+            error.value = false;
         } catch (e) {
-            error.value = e.message || "Error cargando paises";
-            console.log("error cargando paises", e);
+            error.value = true;
+            console.log("error carregant països", e);
         }
-    };
+    }
+
+    // ✅ NUEVO: Crear país
+    const createCountry = async (countryData) => {
+        loading.value = true;
+        try {
+            const response = await fetch(COUNTRIES_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(countryData)
+            });
+            const data = await response.json();
+            if (response.ok) {
+                await getCountries(); // Recargar lista de países
+                return data;
+            } else {
+                throw new Error(data.message || 'Error creant país');
+            }
+        } catch (e) {
+            error.value = true;
+            console.log("error creant país", e);
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
 
     return {
         conflicts,
@@ -163,6 +168,7 @@ export const useConflictStore = defineStore("conflicts", () => {
         createConflict,
         updateConflict,
         deleteConflict,
-        getCountries
-    };
+        getCountries,
+        createCountry  // ✅ EXPORTAR EL NUEVO MÉTODO
+    }
 });

@@ -36,3 +36,24 @@ npm run dev
 ```sh
 npm run build
 ```
+
+## Deploy in Vercel
+
+Set this environment variable in Vercel (`Project Settings > Environment Variables`):
+
+```sh
+VITE_API_BASE_URL=https://conflicttracker-production-90d1.up.railway.app/api/v1
+```
+
+Then deploy:
+
+```sh
+npm i -g vercel
+vercel
+```
+
+For production domain updates:
+
+```sh
+vercel --prod
+```
