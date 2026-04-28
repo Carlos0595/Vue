@@ -1,62 +1,137 @@
-# vue
+# Conflict Tracker - Deploy Fullstack (Vue + Spring Boot)
 
-This template should help get you started developing with Vue 3 in Vite.
+## 1) URL pública del Frontend
 
-## Recommended IDE Setup
+- Frontend (Vercel): `https://vue-git-master-carlos0595s-projects.vercel.app/`
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
 
-## Recommended Browser Setup
+## 2) Arquitectura utilizada
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
+```text
+Usuario (Browser)
+   |
+   v
+Frontend Vue 3 + Vite (Vercel)
+   |
+   | /api/v1/*  (rewrite en vercel.json)
+   v
+Backend Spring Boot (Railway)
+   |
+   v
+Base de datos (persistencia backend)
 ```
 
-### Compile and Hot-Reload for Development
+### Detalle técnico
 
-```sh
-npm run dev
-```
+- Frontend: Vue 3 + Pinia + Vue Router.
+- Build/hosting frontend: Vercel.
+- Backend: Spring Boot (API REST bajo `/api/v1`).
+- Hosting backend: Railway.
+- Integración FE-BE:
+  - En producción el frontend llama a `/api/v1/...`.
+  - Vercel redirige esas llamadas al backend de Railway mediante `vercel.json`.
 
-### Compile and Minify for Production
+## 3) Variables de entorno para un nuevo despliegue
 
-```sh
-npm run build
-```
+### Frontend (Vercel)
 
-## Deploy in Vercel
+Configurar en `Project Settings > Environment Variables`:
 
-Set this environment variable in Vercel (`Project Settings > Environment Variables`):
-
-```sh
+```bash
 VITE_API_BASE_URL=/api/v1
 ```
 
-This project includes a `vercel.json` rewrite from `/api/v1/*` to:
-`https://conflicttracker-production-90d1.up.railway.app/api/v1/*`
+### Archivo de referencia local
 
-Then deploy:
+El repositorio incluye:
 
-```sh
-npm i -g vercel
-vercel
+- `.env.example`
+
+Con el valor:
+
+```bash
+VITE_API_BASE_URL=/api/v1
 ```
 
-For production domain updates:
+### Rewrite necesario en Vercel
 
-```sh
+Archivo `vercel.json`:
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "https://conflicttracker-production-90d1.up.railway.app/api/v1/:path*"
+    }
+  ]
+}
+```
+
+## 4) Modificaciones realizadas (backend Spring + frontend Vue)
+
+## Error inicial detectado
+
+- Los conflictos no cargaban en producción (Vercel).
+- El endpoint backend existía y respondía (`200`), pero desde navegador en dominio Vercel se bloqueaba por CORS (`403`).
+- Además, el frontend estaba inicialmente preparado para `localhost` y no para entorno de producción.
+
+## Cambios en Backend (Spring Boot)
+
+### Problema
+
+- `@CrossOrigin` estaba limitado a `http://localhost:5173`, por lo que no aceptaba el dominio de Vercel.
+
+### Solución aplicada
+
+- Ampliar `@CrossOrigin` para incluir:
+  - `http://localhost:5173`
+  - `https://TU-FRONTEND.vercel.app`
+
+Ejemplo:
+
+```java
+@CrossOrigin(origins = {
+    "http://localhost:5173",
+    "https://TU-FRONTEND.vercel.app"
+})
+```
+
+## Cambios en Frontend (Vue)
+
+### Problema 1
+
+- URL de API no parametrizada para producción (antes dependía de localhost o URL fija).
+
+### Solución 1
+
+- Configurar uso de `import.meta.env.VITE_API_BASE_URL` en el store.
+- Fallback en producción a `/api/v1`.
+
+### Problema 2
+
+- Bloqueo CORS al llamar directamente de frontend a Railway.
+
+### Solución 2
+
+- Añadir `vercel.json` con rewrite de `/api/v1/*` hacia Railway.
+- El navegador llama al mismo dominio del frontend y Vercel hace de proxy.
+
+### Problema 3
+
+- Gestión de errores poco clara en peticiones fetch.
+
+### Solución 3
+
+- Mejorar manejo de errores HTTP en store (`response.ok`) y mensajes de error legibles.
+- Adaptar parseo para evitar dejar listas vacías silenciosamente.
+
+## 5) Comandos útiles
+
+```bash
+npm install
+npm run dev
+npm run build
+vercel
 vercel --prod
 ```
