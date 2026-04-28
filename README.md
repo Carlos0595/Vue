@@ -42,8 +42,11 @@ npm run build
 Set this environment variable in Vercel (`Project Settings > Environment Variables`):
 
 ```sh
-VITE_API_BASE_URL=https://conflicttracker-production-90d1.up.railway.app/api/v1
+VITE_API_BASE_URL=/api/v1
 ```
+
+This project includes a `vercel.json` rewrite from `/api/v1/*` to:
+`https://conflicttracker-production-90d1.up.railway.app/api/v1/*`
 
 Then deploy:
 
